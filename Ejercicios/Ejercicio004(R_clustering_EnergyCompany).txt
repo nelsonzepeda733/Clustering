@@ -1,0 +1,42 @@
+library('cluster')
+************
+K-MEANS ALGORITHM
+************
+#Read data
+setwd("C:/Users/Nelson/Desktop/Curso Machine Learning/AFPCrecer/CursoEstudio/Clustering/Ejercicios/datasets")
+ds<-read.table("TransformedFile.csv",dec=".",sep=",",header=TRUE,colClasses=c("numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric"))
+#Select the number of clusters based on:	a) The sum of squared error (SSE)
+	   kmax <- 10
+	   res <- rep(0,kmax)
+	   for(i in 1:kmax){
+	      res[i] <- kmeans(ds,i,nstart=30)$tot.withinss
+	   }
+plot(1:kmax,res,type="b",pch=19,frame=FALSE,xlab="Number of clusters K",ylab="Total within-clusters sum of squares")	   
+
+#b) The percentage of variance explained
+kmax <- 10
+res <- rep(0,kmax)	   
+for(i in 1:kmax){
+	      kmmtemp <- kmeans(ds,i,nstart=30)
+	      res[i] <- kmmtemp$betweenss/kmmtemp$totss
+	   }
+plot(1:kmax,res,type="b",pch=19,frame=FALSE,xlab="Number of clusters K",ylab="Total variance explained")
+
+#c) The Silhouette coefficient
+kmax <- 10
+res <- rep(0,kmax)
+for(i in 2:kmax){
+	      kmmtemp <- kmeans(ds,i,nstart=30)
+	      resv <- silhouette(kmmtemp$cluster,dist(ds))
+	      res[i] <- mean(resv[,3])
+	   }
+plot(1:kmax,res,type="b",pch=19,frame=FALSE,xlab="Number of clusters K",ylab="Silhouette coeficient")	   
+
+	   
+######################################################################################################################
+#Build the model. To account for different initial seed selection we ask to try 30 different random starting assignments (nstart=30) and select the one with the lowest SSE.
+kmm <- kmeans(ds,3,iter.max=100,nstart=30)
+#Combine dataset and clusters. Write the new dataset to file.
+dsnew <- cbind(ds,kmm$cluster)
+write.table(dsnew,file="clusters_kmeans.txt",row.names=FALSE)
+

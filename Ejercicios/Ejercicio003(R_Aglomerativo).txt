@@ -1,0 +1,64 @@
+#Load libraries
+library('tm')
+library('proxy')
+library('ggplot2')
+library('wordcloud')
+
+#Read data
+setwd("C:/Users/Nelson/Desktop/Curso Machine Learning/AFPCrecer/CursoEstudio/Clustering/Ejercicios/datasets")
+ds <- read.csv("ac_data.csv",stringsAsFactors=FALSE)
+
+#Load text as corpus
+report <- VCorpus(VectorSource(ds$Summary))
+report[[3]]$content
+
+#Cleaning
+	a) Remove punctuation and numbers:
+       report <- tm_map(report,removePunctuation)
+	   report <- tm_map(report, removeNumbers)  
+	b) Convert to lowercase:
+	   report <- tm_map(report,content_transformer(tolower))
+	c) Remove “stopwords” (common words):
+	   report <- tm_map(report, removeWords, stopwords("english"))
+	d) Strip unnecesary whitespace:
+	   report <- tm_map(report, stripWhitespace)
+	e) Lemmatize (use coreNLP)...and then import texts after lemmatization
+	   report <- read.csv("report_lemma.csv",stringsAsFactors=FALSE)
+	   report <- VCorpus(VectorSource(report$Summary))
+	
+#Create a document-terms matrix
+dtm <- DocumentTermMatrix(report)
+dtmmtx <- as.matrix(dtm)
+
+#Let's look at the most frequent terms
+freq <- colSums(as.matrix(dtm)) 
+wf <- data.frame(word=names(freq),freq=freq)
+	
+#Let's remove some of these terms
+dtm <- DocumentTermMatrix(report,control=list(stopwords=c("aircraft","plane","crash","one","two","cause","make","kill","result","continue","contribute","take","flight","right","due","lead","factor","minute","leave")))
+dtms <- removeSparseTerms(dtm, 0.96)
+freq <- colSums(as.matrix(dtms)) 
+wf <- data.frame(word=names(freq),freq=freq)
+
+#Display terms according to their frequencies
+p <- ggplot(subset(wf),aes(word, freq))    
+p <- p + geom_bar(stat="identity")   
+p <- p + theme(axis.text.x=element_text(angle=45, hjust=1))   
+p
+
+#Create clouds of words
+wordcloud(names(freq),freq,scale=c(5,0.1),colors=brewer.pal(6,"Dark2")) 
+	
+
+***********
+CLUSTERING BY TERMS SIMILARITY
+***********
+#Compute the distance matrix
+dtms[dtms > 1] <- 1
+dtms <- as.matrix(dtms)
+d <- dist(t(dtms), method = "Jaccard")
+#Build the model (agglomerative clustering)
+hc <- hclust(d,method="ward.D")
+#Visualize clusters by cutting on 12 groups
+plot(hc,hang=-1)
+rect.hclust(hc,k=12,border=2:4)
